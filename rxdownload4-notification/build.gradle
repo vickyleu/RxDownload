@@ -35,11 +35,15 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-
 }
-
+configurations.all {
+    resolutionStrategy {
+        force 'androidx.core:core-ktx:1.6.0'
+    }
+}
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    //noinspection GradleDependency
     implementation 'androidx.core:core-ktx:1.6.0'
     implementation project(":rxdownload4-manager")
 }
