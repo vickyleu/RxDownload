@@ -1,6 +1,6 @@
 package zlc.season.rxdownload4.task
 
-import io.reactivex.Flowable
+import io.reactivex.rxjava3.core.Flowable
 import zlc.season.rxdownload4.DEFAULT_SAVE_PATH
 import zlc.season.rxdownload4.Progress
 import zlc.season.rxdownload4.downloader.Dispatcher

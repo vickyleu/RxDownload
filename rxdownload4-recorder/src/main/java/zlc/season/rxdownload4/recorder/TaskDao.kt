@@ -2,7 +2,7 @@ package zlc.season.rxdownload4.recorder
 
 import androidx.room.*
 import androidx.room.OnConflictStrategy.IGNORE
-import io.reactivex.Maybe
+import io.reactivex.rxjava3.core.Maybe
 import zlc.season.rxdownload4.manager.Status
 
 @Dao

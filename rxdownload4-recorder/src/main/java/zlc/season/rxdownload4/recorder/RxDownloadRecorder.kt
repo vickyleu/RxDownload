@@ -1,11 +1,11 @@
 package zlc.season.rxdownload4.recorder
 
 import android.annotation.SuppressLint
-import io.reactivex.Flowable.fromIterable
-import io.reactivex.Maybe
-import io.reactivex.android.schedulers.AndroidSchedulers.mainThread
-import io.reactivex.rxkotlin.subscribeBy
-import io.reactivex.schedulers.Schedulers.io
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers.mainThread
+import io.reactivex.rxjava3.core.Flowable.fromIterable
+import io.reactivex.rxjava3.core.Maybe
+import io.reactivex.rxjava3.kotlin.subscribeBy
+import io.reactivex.rxjava3.schedulers.Schedulers.io
 import zlc.season.claritypotion.ClarityPotion.Companion.clarityPotion
 import zlc.season.rxdownload4.manager.*
 import zlc.season.rxdownload4.notification.SimpleNotificationCreator
@@ -20,13 +20,13 @@ object RxDownloadRecorder {
      */
     fun update(task: Task, newExtraInfo: String): Maybe<TaskEntity> {
         return Maybe.just(task)
-                .subscribeOn(io())
-                .flatMap {
-                    taskDataBase.taskDao().update(task.hashCode(), newExtraInfo)
-                }
-                .flatMap {
-                    getTask(task)
-                }
+            .subscribeOn(io())
+            .flatMap {
+                taskDataBase.taskDao().update(task.hashCode(), newExtraInfo)
+            }
+            .flatMap {
+                getTask(task)
+            }
     }
 
     fun getTask(url: String): Maybe<TaskEntity> {
@@ -35,10 +35,10 @@ object RxDownloadRecorder {
 
     fun getTask(task: Task): Maybe<TaskEntity> {
         return taskDataBase.taskDao().get(task.hashCode())
-                .subscribeOn(io())
-                .doOnSuccess {
-                    it.status.progress = it.progress
-                }
+            .subscribeOn(io())
+            .doOnSuccess {
+                it.status.progress = it.progress
+            }
     }
 
     fun getTaskList(vararg url: String): Maybe<List<TaskEntity>> {
@@ -53,72 +53,76 @@ object RxDownloadRecorder {
             it.hashCode()
         }
         return taskDataBase.taskDao().get(*ids.toIntArray())
-                .subscribeOn(io())
-                .doOnSuccess { mapResult(it) }
+            .subscribeOn(io())
+            .doOnSuccess { mapResult(it) }
     }
 
     fun getTaskList(page: Int, pageSize: Int): Maybe<List<TaskEntity>> {
         return taskDataBase.taskDao().page(page * pageSize, pageSize)
-                .subscribeOn(io())
-                .doOnSuccess { mapResult(it) }
+            .subscribeOn(io())
+            .doOnSuccess { mapResult(it) }
     }
 
-    fun getTaskListWithStatus(page: Int, pageSize: Int, vararg status: Status): Maybe<List<TaskEntity>> {
+    fun getTaskListWithStatus(
+        page: Int,
+        pageSize: Int,
+        vararg status: Status
+    ): Maybe<List<TaskEntity>> {
         return taskDataBase.taskDao().pageWithStatus(page * pageSize, pageSize, *status)
-                .subscribeOn(io())
-                .doOnSuccess { mapResult(it) }
+            .subscribeOn(io())
+            .doOnSuccess { mapResult(it) }
     }
 
     fun getAllTask(): Maybe<List<TaskEntity>> {
         return taskDataBase.taskDao().getAll()
-                .subscribeOn(io())
-                .doOnSuccess { mapResult(it) }
+            .subscribeOn(io())
+            .doOnSuccess { mapResult(it) }
     }
 
     fun getAllTaskWithStatus(vararg status: Status): Maybe<List<TaskEntity>> {
         return taskDataBase.taskDao().getAllWithStatus(*status)
-                .subscribeOn(io())
-                .doOnSuccess { mapResult(it) }
+            .subscribeOn(io())
+            .doOnSuccess { mapResult(it) }
     }
 
     fun startAll(callback: () -> Unit = {}) {
         getAllTaskWithStatus(Paused(), Failed())
-                .flatMapPublisher { fromIterable(it) }
-                .doOnNext {
-                    it.task.createManager().start()
-                }
-                .observeOn(mainThread())
-                .doOnComplete {
-                    callback()
-                }
-                .subscribeBy()
+            .flatMapPublisher { fromIterable(it) }
+            .doOnNext {
+                it.task.createManager().start()
+            }
+            .observeOn(mainThread())
+            .doOnComplete {
+                callback()
+            }
+            .subscribeBy()
     }
 
 
     fun stopAll(callback: () -> Unit = {}) {
         getAllTaskWithStatus(Pending(), Started(), Downloading())
-                .flatMapPublisher { fromIterable(it) }
-                .doOnNext {
-                    it.task.createManager().stop()
-                }
-                .observeOn(mainThread())
-                .doOnComplete {
-                    callback()
-                }
-                .subscribeBy()
+            .flatMapPublisher { fromIterable(it) }
+            .doOnNext {
+                it.task.createManager().stop()
+            }
+            .observeOn(mainThread())
+            .doOnComplete {
+                callback()
+            }
+            .subscribeBy()
     }
 
     fun deleteAll(callback: () -> Unit = {}) {
         getAllTask()
-                .flatMapPublisher { fromIterable(it) }
-                .doOnNext {
-                    it.task.createManager().delete()
-                }
-                .observeOn(mainThread())
-                .doOnComplete {
-                    callback()
-                }
-                .subscribeBy()
+            .flatMapPublisher { fromIterable(it) }
+            .doOnNext {
+                it.task.createManager().delete()
+            }
+            .observeOn(mainThread())
+            .doOnComplete {
+                callback()
+            }
+            .subscribeBy()
     }
 
     private fun mapResult(list: List<TaskEntity>) {
@@ -129,8 +133,8 @@ object RxDownloadRecorder {
 
     private fun Task.createManager(): TaskManager {
         return manager(
-                notificationCreator = SimpleNotificationCreator(),
-                recorder = RoomRecorder()
+            notificationCreator = SimpleNotificationCreator(),
+            recorder = RoomRecorder()
         )
     }
 }

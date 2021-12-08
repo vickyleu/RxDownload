@@ -59,6 +59,7 @@ class SimpleNotificationCreator : NotificationCreator {
                 //Do not need notification
                 is Normal -> return null
                 is Deleted -> return null
+                else -> {  }
             }
             return builder
         }

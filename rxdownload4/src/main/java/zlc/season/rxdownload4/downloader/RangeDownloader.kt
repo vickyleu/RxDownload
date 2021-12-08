@@ -1,10 +1,11 @@
 package zlc.season.rxdownload4.downloader
 
-import io.reactivex.Emitter
-import io.reactivex.Flowable
-import io.reactivex.functions.BiConsumer
-import io.reactivex.functions.Consumer
-import io.reactivex.schedulers.Schedulers
+import io.reactivex.rxjava3.core.Emitter
+import io.reactivex.rxjava3.core.Flowable
+import io.reactivex.rxjava3.functions.BiConsumer
+import io.reactivex.rxjava3.functions.Consumer
+import io.reactivex.rxjava3.functions.Supplier
+import io.reactivex.rxjava3.schedulers.Schedulers
 import okhttp3.ResponseBody
 import retrofit2.Response
 import zlc.season.rxdownload4.Progress
@@ -17,7 +18,6 @@ import java.io.InputStream
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode.READ_WRITE
-import java.util.concurrent.Callable
 
 class RangeDownloader : Downloader {
     private var alreadyDownloaded = false
@@ -27,7 +27,10 @@ class RangeDownloader : Downloader {
     private lateinit var tmpFile: File
     private lateinit var rangeTmpFile: RangeTmpFile
 
-    override fun download(taskInfo: TaskInfo, response: Response<ResponseBody>): Flowable<Progress> {
+    override fun download(
+        taskInfo: TaskInfo,
+        response: Response<ResponseBody>
+    ): Flowable<Progress> {
         file = taskInfo.task.getFile()
         shadowFile = file.shadow()
         tmpFile = file.tmp()
@@ -35,10 +38,12 @@ class RangeDownloader : Downloader {
         beforeDownload(taskInfo, response)
 
         return if (alreadyDownloaded) {
-            Flowable.just(Progress(
+            Flowable.just(
+                Progress(
                     downloadSize = response.contentLength(),
                     totalSize = response.contentLength()
-            ))
+                )
+            )
         } else {
             startDownload(taskInfo, response)
         }
@@ -82,122 +87,125 @@ class RangeDownloader : Downloader {
     }
 
 
-    private fun startDownload(taskInfo: TaskInfo, response: Response<ResponseBody>): Flowable<Progress> {
+    private fun startDownload(
+        taskInfo: TaskInfo,
+        response: Response<ResponseBody>
+    ): Flowable<Progress> {
         val url = response.url()
         val (downloadSize, totalSize) = rangeTmpFile.lastProgress()
 
         val progress = Progress(
-                downloadSize = downloadSize,
-                totalSize = totalSize
+            downloadSize = downloadSize,
+            totalSize = totalSize
         )
 
         val sources = mutableListOf<Flowable<Long>>()
 
         rangeTmpFile.undoneSegments()
-                .mapTo(sources) {
-                    InnerDownloader(url, it, shadowFile, tmpFile, taskInfo.request).download()
-                }
+            .mapTo(sources) {
+                InnerDownloader(url, it, shadowFile, tmpFile, taskInfo.request).download()
+            }
 
         return Flowable.mergeDelayError(sources, taskInfo.maxConCurrency)
-                .map {
-                    progress.apply {
-                        this.downloadSize += it
-                    }
+            .map {
+                progress.apply {
+                    this.downloadSize += it
                 }
-                .doOnComplete {
-                    shadowFile.renameTo(file)
-                    tmpFile.delete()
-                    response.body()?.closeQuietly()
-                }
+            }
+            .doOnComplete {
+                shadowFile.renameTo(file)
+                tmpFile.delete()
+                response.body()?.closeQuietly()
+            }
     }
 
     class InternalState(
-            val source: InputStream,
-            val shadowChannel: FileChannel,
-            val tmpFileChannel: FileChannel,
-            var tmpFileBuffer: MappedByteBuffer,
-            var shadowFileBuffer: MappedByteBuffer,
-            var current: Long = 0
+        val source: InputStream,
+        val shadowChannel: FileChannel,
+        val tmpFileChannel: FileChannel,
+        var tmpFileBuffer: MappedByteBuffer,
+        var shadowFileBuffer: MappedByteBuffer,
+        var current: Long = 0
     )
 
     class InnerDownloader(
-            private val url: String,
-            private val segment: RangeTmpFile.Segment,
-            private val shadowFile: File,
-            private val tmpFile: File,
-            private val request: Request
+        private val url: String,
+        private val segment: RangeTmpFile.Segment,
+        private val shadowFile: File,
+        private val tmpFile: File,
+        private val request: Request
     ) {
         fun download(): Flowable<Long> {
             return Flowable.just(segment)
-                    .subscribeOn(Schedulers.io())
-                    .map { mapOf("Range" to "bytes=${it.current}-${it.end}").log() }
-                    .flatMap { request.get(url, it) }
-                    .flatMap { rangeSave(segment, it) }
+                .subscribeOn(Schedulers.io())
+                .map { mapOf("Range" to "bytes=${it.current}-${it.end}").log() }
+                .flatMap { request.get(url, it) }
+                .flatMap { rangeSave(segment, it) }
         }
 
         private fun rangeSave(
-                segment: RangeTmpFile.Segment,
-                response: Response<ResponseBody>
+            segment: RangeTmpFile.Segment,
+            response: Response<ResponseBody>
         ): Flowable<Long> {
 
             val body = response.body() ?: throw RuntimeException("Response body is NULL")
 
             return Flowable.generate(
-                    Callable {
-                        initialState(body, segment)
-                    },
-                    BiConsumer<InternalState, Emitter<Long>> { internalState, emitter ->
-                        internalState.apply {
-                            val buffer = ByteArray(8192)
-                            val readLen = source.read(buffer)
+                Supplier {
+                    initialState(body, segment)
+                },
+                BiConsumer<InternalState, Emitter<Long>> { internalState, emitter ->
+                    internalState.apply {
+                        val buffer = ByteArray(8192)
+                        val readLen = source.read(buffer)
 
-                            if (readLen == -1) {
-                                emitter.onComplete()
-                            } else {
-                                shadowFileBuffer.put(buffer, 0, readLen)
+                        if (readLen == -1) {
+                            emitter.onComplete()
+                        } else {
+                            shadowFileBuffer.put(buffer, 0, readLen)
 
-                                current += readLen
+                            current += readLen
 
-                                tmpFileBuffer.putLong(16, current)
+                            tmpFileBuffer.putLong(16, current)
 
-                                emitter.onNext(readLen.toLong())
-                            }
+                            emitter.onNext(readLen.toLong())
                         }
-                    },
-                    Consumer {
-                        it.tmpFileChannel.closeQuietly()
-                        it.shadowChannel.closeQuietly()
-                        it.source.closeQuietly()
-                    })
+                    }
+                },
+                Consumer {
+                    it.tmpFileChannel.closeQuietly()
+                    it.shadowChannel.closeQuietly()
+                    it.source.closeQuietly()
+                })
         }
 
         private fun initialState(
-                body: ResponseBody,
-                segment: RangeTmpFile.Segment
+            body: ResponseBody,
+            segment: RangeTmpFile.Segment
         ): InternalState {
             val source = body.byteStream()
             val shadowFileChannel = shadowFile.channel()
             val tmpFileChannel = tmpFile.channel()
 
             val tmpFileBuffer = tmpFileChannel.map(
-                    READ_WRITE,
-                    segment.startByte(),
-                    SEGMENT_SIZE
+                READ_WRITE,
+                segment.startByte(),
+                SEGMENT_SIZE
             )
 
             val shadowFileBuffer = shadowFileChannel.map(
-                    READ_WRITE,
-                    segment.current,
-                    segment.remainSize()
+                READ_WRITE,
+                segment.current,
+                segment.remainSize()
             )
 
             return InternalState(
-                    source,
-                    shadowFileChannel,
-                    tmpFileChannel,
-                    tmpFileBuffer,
-                    shadowFileBuffer,
-                    current = segment.current
+                source,
+                shadowFileChannel,
+                tmpFileChannel,
+                tmpFileBuffer,
+                shadowFileBuffer,
+                current = segment.current
             )
         }
 

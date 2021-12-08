@@ -1,6 +1,6 @@
 package zlc.season.rxdownload4
 
-import io.reactivex.Flowable
+import io.reactivex.rxjava3.core.Flowable
 import zlc.season.claritypotion.ClarityPotion
 import zlc.season.rxdownload4.downloader.DefaultDispatcher
 import zlc.season.rxdownload4.downloader.Dispatcher

@@ -1,8 +1,8 @@
 package zlc.season.rxdownload4.recorder
 
 import android.annotation.SuppressLint
-import io.reactivex.rxkotlin.subscribeBy
-import io.reactivex.schedulers.Schedulers.io
+import io.reactivex.rxjava3.kotlin.subscribeBy
+import io.reactivex.rxjava3.schedulers.Schedulers.io
 import zlc.season.rxdownload4.manager.Status
 import zlc.season.rxdownload4.manager.TaskRecorder
 import zlc.season.rxdownload4.recorder.RxDownloadRecorder.taskDataBase

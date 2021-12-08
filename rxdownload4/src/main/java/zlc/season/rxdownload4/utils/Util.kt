@@ -1,6 +1,6 @@
 package zlc.season.rxdownload4.utils
 
-import io.reactivex.disposables.Disposable
+import io.reactivex.rxjava3.disposables.Disposable
 import java.math.BigDecimal
 
 fun Disposable?.safeDispose() {
@@ -37,14 +37,15 @@ fun Long.formatSize(): String {
 
 fun Double.decimal(digits: Int): Double {
     return this.toBigDecimal()
-            .setScale(digits, BigDecimal.ROUND_HALF_UP)
-            .toDouble()
+        .setScale(digits, BigDecimal.ROUND_HALF_UP)
+        .toDouble()
 }
 
 infix fun Long.ratio(bottom: Long): Double {
     if (bottom <= 0) {
         return 0.0
     }
-    val result = (this * 100.0).toBigDecimal().divide((bottom * 1.0).toBigDecimal(), 2, BigDecimal.ROUND_HALF_UP)
+    val result = (this * 100.0).toBigDecimal()
+        .divide((bottom * 1.0).toBigDecimal(), 2, BigDecimal.ROUND_HALF_UP)
     return result.toDouble()
 }

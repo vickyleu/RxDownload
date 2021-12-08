@@ -1,38 +1,60 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-kapt'
+plugins {
+    id 'com.android.library'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
+    id 'maven-publish'
+}
+group = 'com.github.vickyleu.rxdownload'
+version = '1.0.0'
 
-apply plugin: 'com.github.dcendents.android-maven'
+afterEvaluate {
+    publishing {
+        publications {
+            // Creates a Maven publication called "release".
+            release(MavenPublication) {
+                from components.release
+                groupId = 'com.github.vickyleu.rxdownload'
+                artifactId = 'recorder'
+                version = '1.0.0'
+            }
+        }
+    }
+}
 
 android {
-    compileSdkVersion 28
-
-
+    compileSdkVersion 30
     defaultConfig {
-        minSdkVersion 14
-        //noinspection OldTargetApi
+        minSdkVersion 16
+        //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 28
         versionCode 1
-        versionName "1.0"
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        versionName "1.0.0"
     }
-
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-
+    kapt {
+        javacOptions {
+            // Increase the max count of errors from annotation processors.
+            // Default is 100.
+            option("-Xmaxerrs", 500)
+        }
+        arguments {
+            arg("room.schemaLocation","$projectDir/schemas".toString())
+        }
+        // Configure kapt to correct error types for Hilt
+        correctErrorTypes true
+    }
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'androidx.room:room-runtime:2.2.3'
-    implementation 'androidx.room:room-rxjava2:2.2.3'
-    kapt 'androidx.room:room-compiler:2.2.3'
-
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation 'androidx.room:room-runtime:2.4.0-rc01'
+    implementation 'androidx.room:room-rxjava3:2.4.0-rc01'
+    kapt 'androidx.room:room-compiler:2.4.0-rc01'
     implementation project(":rxdownload4-manager")
     implementation project(":rxdownload4-notification")
 }

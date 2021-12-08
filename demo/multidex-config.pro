@@ -1,2 +1,0 @@
--keep class zlc.season.claritypotion.ClarityPotion
--keep class zlc.season.rxdownload.demo.utils.ApkFileProvider

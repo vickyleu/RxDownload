@@ -1,6 +1,6 @@
 package zlc.season.rxdownload4.downloader
 
-import io.reactivex.Flowable
+import io.reactivex.rxjava3.core.Flowable
 import okhttp3.ResponseBody
 import retrofit2.Response
 import zlc.season.rxdownload4.Progress
