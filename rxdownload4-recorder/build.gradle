@@ -62,4 +62,5 @@ dependencies {
     kapt 'androidx.room:room-compiler:2.4.0-rc01'
     implementation project(":rxdownload4-manager")
     implementation project(":rxdownload4-notification")
+
 }
